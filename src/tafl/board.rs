@@ -63,12 +63,6 @@ impl Board {
         ((self.board >> 50) & 1) as u8
     }
 
-    fn set_player(&self, p: u8) -> Self {
-        let mask = 1u64 << 50;
-        let board = self.board & !mask | ((p as u64) << 50);
-        Board { board }
-    }
-
     fn next_player(&self) -> Self {
         Board { board: self.board ^ (1u64 << 50) }
     }

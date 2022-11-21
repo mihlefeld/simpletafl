@@ -78,7 +78,7 @@ impl Negamax {
     }
     
     pub fn solve(&mut self, board: &Board, depth: i32) -> (i32, Option<TMove>) {
-        let mut alpha = -10_000;
+        let alpha = -10_000;
         let beta = 10_000;
         let winner = board.get_winner();
         match winner {

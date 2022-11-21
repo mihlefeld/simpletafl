@@ -1,6 +1,5 @@
 mod tafl;
 use tafl::board::Board;
-use tafl::board::TMove;
 use tafl::alphabeta::Negamax;
 use std::time::Instant;
 
@@ -10,7 +9,7 @@ fn main() {
     // new benchmark 0b0_0000010000_0100000001_0110101001_0111000010_0001000001
     // start stellung 0b0_0100010001_0000100000_0110111001_0000100000_0100010001
     // debug stellung 0b0_0100010000_0000000001_0110101001_0111000010_0001010000
-    let mut board = Board::new(0b1_0010010000_0100000001_0100001001_0011000010_0101100001);
+    let board = Board::new(0b1_0010010000_0100000001_0100001001_0011000010_0101100001);
     println!("Start evaluation {}", board.eval());
 
     for _ in 0..1 {
