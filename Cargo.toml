@@ -13,3 +13,5 @@ debug = 1
 num = "0.2.1"
 bitvec = "1"
 colored = "2.0.0"
+unroll = "0.1.5"
+metrohash = "1.0.6"

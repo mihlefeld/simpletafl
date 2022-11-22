@@ -1,7 +1,6 @@
-use std::collections::HashMap;
-
+use metrohash::MetroHashMap;
 use super::board::Board;
-use super::board::TMove;
+use super::tmove::TMove;
 
 #[derive(Clone, Copy)]
 pub struct TTEntry {
@@ -9,7 +8,7 @@ pub struct TTEntry {
 }
 
 pub struct  Negamax {
-    pub map: HashMap<u64, TTEntry>
+    pub map: MetroHashMap<u64, TTEntry>
 }
 
 impl Negamax {
@@ -73,7 +72,7 @@ impl Negamax {
     }
 
     pub fn new() -> Negamax {
-        Negamax { map: HashMap::new() }
+        Negamax { map: MetroHashMap::default() }
     }
 }
 

@@ -1,21 +1,7 @@
 
+use super::tmove::TMove;
 use colored::Colorize;
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub struct TMove {
-    pub start: (u8, u8),
-    pub end: (u8, u8)
-}
-
-impl ToString for TMove {
-    fn to_string(&self) -> String {
-        let (sx, sy) = self.start;
-        let (ex, ey) = self.end;
-        let letters = ["A", "B", "C", "D", "E"];
-        let numbers = (1..=5).rev().collect::<Vec<i32>>();
-        format!("{}{}->{}{}", letters[sx as usize], numbers[sy as usize], letters[ex as usize], numbers[ey as usize])
-    }
-}
+use unroll::unroll_for_loops;
 
 #[derive(Clone, Copy)]
 pub struct Board {pub board: u64}
@@ -116,6 +102,7 @@ impl Board {
         board.next_player()
     }
 
+    #[unroll_for_loops]
     pub fn get_max_moves_piece(&self, x: u8, y: u8) -> (u8, u8, u8, u8){
         // check free moves in top direction, from y to y=0 y excluded
         let mut min_y_move = y;
@@ -155,10 +142,13 @@ impl Board {
         return (min_x_move, max_x_move, min_y_move, max_y_move);
     }
 
+    #[unroll_for_loops]
     fn get_possible_moves_player<const PLAYER: u8>(&self) -> Vec<TMove> {
         let mut moves = Vec::new();
-        for i in 0..5u8 {
-            for j in 0..5u8 {
+        for i_ in 0..5 {
+            for j_ in 0..5 {
+                let i = i_ as u8;
+                let j = j_ as u8;
                 if ((PLAYER == 0) & (self.get(i, j) > 1)) | ((PLAYER == 1) & (self.get(i, j) == 1)){
                     let (min_x_move, max_x_move, min_y_move, max_y_move) = self.get_max_moves_piece(i, j);
 
@@ -183,12 +173,14 @@ impl Board {
         }
     }
 
+    #[inline]
     fn get_only_black_board(&self) -> u64 {
         let bm1 = 0b1010101010_1010101010_1010101010_1010101010_1010101010u64;
         let bm2 = bm1 >> 1;
         ((self.board & bm2)) & (!(self.board & bm1) >> 1)
     }
 
+    #[inline]
     fn count_white_non_blocked(&self, b_only_black: u64, i: u8, j: u8) -> i32 {
         // row mask shifted to correct row
         let row_mask = 0b1111111111u64;
@@ -204,30 +196,33 @@ impl Board {
         let col_mask_left = col_mask & (col_mask << (5 - j) * 10);
         let col_mask_right = col_mask >> (j + 1) * 10;
 
-        let blocking_top = (b_only_black & (col_mask_left << (4 - i)*2)) < 1;
-        let blocking_down = (b_only_black & (col_mask_right << (4 - i)*2)) < 1;
+        let blocking_top = (b_only_black & (col_mask_left << (4 - i)*2)) == 0;
+        let blocking_down = (b_only_black & (col_mask_right << (4 - i)*2)) == 0;
         let blocking_y = blocking_top as i32 + blocking_down as i32;
         
         return blocking_x + blocking_y;
     }
-
-
+    
+    #[unroll_for_loops]
+    #[inline]
     pub fn eval(&self) -> i32 {
         let b_board = Board { board: self.get_only_black_board() };
-        let mut score = 0i32;
+        let mut score = b_board.board.count_ones() as i32 * -7;
 
-        for i in 0..5 {
-            for j in 0..5 {
+
+        for i_ in 0..5 {
+            for j_ in 0..5 {
+                let i = i_ as u8;
+                let j = j_ as u8;
                 let piece = self.get(i, j);
                 match piece {
-                    1 => { score -= 7 },
                     2..=3 => {
                         if i == 0 || i == 4 || j == 0 || j == 4 { score += 12 }
                         else if i == 1 || i == 3 || j == 1 || j == 3 { score += 6 }
 
                         score += 2 * self.count_white_non_blocked(b_board.board, i, j);
 
-
+                        
                         if piece == 3 && (
                             (i > 0) && (b_board.get(i - 1, j) != 0) ||
                             (i < 4) && (b_board.get(i + 1, j) != 0) ||
@@ -256,7 +251,7 @@ impl Board {
             print!("{} |", 5 - j);
             for i in 0..5 {
                 print!("{}", match self.get(i, j) {
-                    1 => "+".black(),
+                    1 => "+".truecolor(127, 127, 127),
                     2 => "+".blue(),
                     3 => "K".blue(),
                     _ => " ".white()
