@@ -189,23 +189,23 @@ impl Board {
         ((self.board & bm2)) & (!(self.board & bm1) >> 1)
     }
 
-    fn count_white_blocked(&self, b_only_black: u64, i: u8, j: u8) -> i32 {
+    fn count_white_non_blocked(&self, b_only_black: u64, i: u8, j: u8) -> i32 {
         // row mask shifted to correct row
         let row_mask = 0b1111111111u64;
         // we only want to consider everything to the left or right of i
         let row_mask_left = row_mask & (row_mask << (5 - i) * 2);
         let row_mask_right = row_mask >> (i + 1) * 2;
 
-        let blocking_left = (b_only_black & (row_mask_left << (4 - j) * 10)) > 0;
-        let blocking_right = (b_only_black & (row_mask_right << (4 - j) * 10)) > 0;
+        let blocking_left = (b_only_black & (row_mask_left << (4 - j) * 10)) < 1;
+        let blocking_right = (b_only_black & (row_mask_right << (4 - j) * 10)) < 1;
         let blocking_x = blocking_left as i32 + blocking_right as i32;
 
         let col_mask = 0b0000000011_0000000011_0000000011_0000000011_0000000011u64;
         let col_mask_left = col_mask & (col_mask << (5 - j) * 10);
         let col_mask_right = col_mask >> (j + 1) * 10;
 
-        let blocking_top = (b_only_black & (col_mask_left << (4 - i)*2)) > 0;
-        let blocking_down = (b_only_black & (col_mask_right << (4 - i)*2)) > 0;
+        let blocking_top = (b_only_black & (col_mask_left << (4 - i)*2)) < 1;
+        let blocking_down = (b_only_black & (col_mask_right << (4 - i)*2)) < 1;
         let blocking_y = blocking_top as i32 + blocking_down as i32;
         
         return blocking_x + blocking_y;
@@ -225,7 +225,7 @@ impl Board {
                         if i == 0 || i == 4 || j == 0 || j == 4 { score += 12 }
                         else if i == 1 || i == 3 || j == 1 || j == 3 { score += 6 }
 
-                        score += 2 * (4 - self.count_white_blocked(b_board.board, i, j));
+                        score += 2 * self.count_white_non_blocked(b_board.board, i, j);
 
 
                         if piece == 3 && (
@@ -319,8 +319,8 @@ mod tests {
          */
         let board = Board { board: 0b1_0100000000_0100100100_0110001001_0100110001_0000000101 };
         let b_only_black = board.get_only_black_board();
-        let block_1 = board.count_white_blocked(b_only_black, 2, 3);
-        let block_2 = board.count_white_blocked(b_only_black, 3, 0);
+        let block_1 = board.count_white_non_blocked(b_only_black, 2, 3);
+        let block_2 = board.count_white_non_blocked(b_only_black, 3, 0);
         assert_eq!(block_1, 2);
         assert_eq!(block_2, 2);
     }
