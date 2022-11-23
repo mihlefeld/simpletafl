@@ -6,6 +6,7 @@ use std::str::FromStr;
 use std::time::Instant;
 use argparse::{ArgumentParser, Store};
 
+
 fn search(board: &Board, start_depth: i32, depth: i32, step: usize, verbose: bool) -> Option<TMove> {
     let mut negamax = Negamax::new();
     let total = Instant::now();
@@ -53,7 +54,7 @@ fn get_human_move(possible_moves: &Vec<TMove>) -> Option<TMove> {
 fn play(start_board: &Board, computer_starts: bool, depth: i32, with_computer: bool) {
     let mut board = *start_board;
     let mut computers_turn = computer_starts & with_computer;
-    while true {
+    loop {
         board.print_board();
         match board.get_winner() {
             Some(0) => { println!("White Won!"); return; }
@@ -71,7 +72,7 @@ fn play(start_board: &Board, computer_starts: bool, depth: i32, with_computer: b
         }
 
         let tmove_option = { match computers_turn {
-            true => search(&board, 1, depth, 1, false),
+            true => search(&board, 1, depth, 1, true),
             false => get_human_move(&possible_moves)
         }};
         match tmove_option {
@@ -113,8 +114,8 @@ fn main() {
     match mode.as_str() {
         "solve" => { solve(&board, depth); },
         "play" => { play(&board, false, 0, false); },
-        "playhc" => { play(&board, false, 8, true); },
-        "playch" => { play(&board, true, 8, true); },
+        "playhc" => { play(&board, false, depth, true); },
+        "playch" => { play(&board, true, depth, true); },
         _ => { println!("Defaulting to solve!"); solve(&board, depth)}
     }
 }   

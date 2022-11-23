@@ -47,7 +47,9 @@ impl Negamax {
 
             // sort possible moves
             let mut moved_boards = possible_moves.into_iter().map(|tmove| (board.make_move(&tmove), tmove)).collect::<Vec<(Board, TMove)>>();
-            moved_boards.sort_by_key(|b| b.0.eval());
+            moved_boards.sort_by_key(|b| {
+                b.0.eval()
+            });
 
             for (moved_board, tmove) in &moved_boards {
                 if first_attempt.is_some() && first_attempt.unwrap() == *tmove { continue; }

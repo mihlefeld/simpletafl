@@ -188,16 +188,16 @@ impl Board {
         let row_mask_left = row_mask & (row_mask << (5 - i) * 2);
         let row_mask_right = row_mask >> (i + 1) * 2;
 
-        let blocking_left = (b_only_black & (row_mask_left << (4 - j) * 10)) < 1;
-        let blocking_right = (b_only_black & (row_mask_right << (4 - j) * 10)) < 1;
+        let blocking_left = (b_only_black & (row_mask_left << (4 - j) * 10)) == 0;
+        let blocking_right = (b_only_black & (row_mask_right << (4 - j) * 10)) == 0;
         let blocking_x = blocking_left as i32 + blocking_right as i32;
 
         let col_mask = 0b0000000011_0000000011_0000000011_0000000011_0000000011u64;
-        let col_mask_left = col_mask & (col_mask << (5 - j) * 10);
-        let col_mask_right = col_mask >> (j + 1) * 10;
+        let col_mask_up = col_mask & (col_mask << (5 - j) * 10);
+        let col_mask_down = col_mask >> (j + 1) * 10;
 
-        let blocking_top = (b_only_black & (col_mask_left << (4 - i)*2)) == 0;
-        let blocking_down = (b_only_black & (col_mask_right << (4 - i)*2)) == 0;
+        let blocking_top = (b_only_black & (col_mask_up << (4 - i)*2)) == 0;
+        let blocking_down = (b_only_black & (col_mask_down << (4 - i)*2)) == 0;
         let blocking_y = blocking_top as i32 + blocking_down as i32;
         
         return blocking_x + blocking_y;
