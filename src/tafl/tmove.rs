@@ -17,9 +17,9 @@ impl ToString for TMove {
     fn to_string(&self) -> String {
         let (sx, sy) = self.start;
         let (ex, ey) = self.end;
-        let letters = ["A", "B", "C", "D", "E"];
+        let letters = ["a", "b", "c", "d", "e"];
         let numbers = (1..=5).rev().collect::<Vec<i32>>();
-        format!("{}{}->{}{}", letters[sx as usize], numbers[sy as usize], letters[ex as usize], numbers[ey as usize])
+        format!("{}{}-{}{}", letters[sx as usize], numbers[sy as usize], letters[ex as usize], numbers[ey as usize])
     }
 }
 
