@@ -98,7 +98,7 @@ impl Negamax {
                 best_move = first_attempt;
                 first_child_searched = true;
                 self.transpo_calls += 1;
-                max = -self.negamax(&board.make_move(&tentry.tmove), d + 1, max_d, -beta, -alpha).0;
+                max = -self.pvs(&board.make_move(&tentry.tmove), d + 1, max_d, -beta, -alpha).0;
             },
             None => {}
         }
@@ -121,14 +121,14 @@ impl Negamax {
                 let value = match first_child_searched.clone() {
                     true => {
                         self.zero_window_calls += 1;
-                        let score = -self.negamax(moved_board, d + 1, max_d, -max - 1, -max).0;
-                        if max < score && score < beta { self.pvs_failed_calls += 1; -self.negamax(moved_board, d + 1, max_d, -beta, -max).0 } 
+                        let score = -self.pvs(moved_board, d + 1, max_d, -max - 1, -max).0;
+                        if max < score && score < beta { self.pvs_failed_calls += 1; -self.pvs(moved_board, d + 1, max_d, -beta, -max).0 } 
                         else { score }
                     }
                     false => {
                         first_child_searched = true;
                         self.normal_calls += 1;
-                        -self.negamax(moved_board, d + 1, max_d, -beta, -max).0
+                        -self.pvs(moved_board, d + 1, max_d, -beta, -max).0
                     }
                 };
                 if value > max {
