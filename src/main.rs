@@ -3,34 +3,52 @@ use tafl::{board::Board, tmove::TMove};
 use tafl::negamax::Negamax;
 use text_io::read;
 use std::str::FromStr;
-use std::time::Instant;
-use argparse::{ArgumentParser, Store};
+use std::time::{Instant};
+use argparse::{ArgumentParser, Store, StoreTrue};
 
 
-fn search(board: &Board, start_depth: i32, depth: i32, step: usize, verbose: bool) -> Option<TMove> {
-    let mut negamax = Negamax::new();
-    let total = Instant::now();
-    let mut best_move = None;
-    for d in (start_depth..=depth).step_by(step) {
-        let now = Instant::now();
-        if verbose { println!("Searching depth {d}...") }
-        let (v, m) = negamax.solve(&board, d);
-        if verbose { println!("Time: {:.2}s[{:.2}s]\t#MAP: {}\teval: {v}", now.elapsed().as_millis() as f32/1000., total.elapsed().as_millis() as f32/1000., negamax.map.len()); }
-        match m {
-            Some(tmove) => { 
-                best_move = Some(tmove);
-                if verbose { println!("Next: {}", tmove.to_string()) }; 
-            }
-            None => { }
+
+fn search_in_time(negamax: &mut Negamax, board: &Board, start_depth: i32, depth: i32, step: usize, t: f32, pvs: bool) -> (i32, Option<TMove>) {
+    let t0 = Instant::now();
+    let mut last_result = negamax.solve(board, start_depth, pvs);
+    println!("Depth\tTime\tTotal\tPts\tLogLen\tMove\tNorm\tTran\tZerW\tPVS-\tTotl");
+    for d in (start_depth+1..=depth).step_by(step) {
+        let t1 = Instant::now();
+        let negamax_result = negamax.solve(board, d, pvs);
+        let elapsed_d = t1.elapsed().as_secs_f32();
+        let elapsed = t0.elapsed().as_secs_f32();
+        let log_len = (negamax.map.len() as f32).log10();
+        print!("{d}\t{elapsed_d:.2}s\t{elapsed:.2}s\t{}\t{log_len:.1}", negamax_result.0);
+        match negamax_result {
+            (_, Some(tmove)) => { print!("\t{}\t", tmove.to_string()) }
+            (_, None) => { print!("\t") }
         }
-        if verbose { println!("----------"); }
+        let normal = negamax.normal_calls;
+        let transpo = negamax.transpo_calls;
+        let zerow = negamax.zero_window_calls;
+        let pvs_fail = negamax.pvs_failed_calls;
+        let total = normal + transpo + zerow + pvs_fail;
+        println!("{normal:.1e}\t{transpo:.1e}\t{zerow}\t{pvs_fail}\t{total:.1e}");
+        if elapsed < t/2.0 {
+            last_result = negamax_result;
+        } else if elapsed <= t {
+            return negamax_result;
+        } else {
+            return last_result;
+        }
     }
-    return best_move;
+    return last_result;
 }
 
-fn solve(board: &Board, depth: i32) {
+
+fn search(board: &Board, start_depth: i32, depth: i32, step: usize, pvs: bool) -> Option<TMove> {
+    let mut negamax = Negamax::new();
+    return search_in_time(&mut negamax, board, start_depth, depth, step, 60.0*60.0*24.0, pvs).1;
+}
+
+fn solve(board: &Board, depth: i32, pvs: bool) {
     board.print_board();
-    search(board, 2, depth, 2, true);
+    search(board, 1, depth, 2, pvs);
 }
 
 fn get_human_move(possible_moves: &Vec<TMove>) -> Option<TMove> {
@@ -51,14 +69,34 @@ fn get_human_move(possible_moves: &Vec<TMove>) -> Option<TMove> {
     return None;
 }
 
-fn play(start_board: &Board, computer_starts: bool, depth: i32, with_computer: bool) {
+fn is_next_player_human() -> bool {
+    let mut input = "".to_string();
+    while input.to_lowercase().as_str() != "exit" {
+        println!("Enter next player h/c: ");
+        input = read!();
+        match input.as_str() {
+            "c" => { return false; }
+            "h" => { return true; }
+            _ => {}
+        } 
+    }
+    return true;
+}
+
+fn sandbox(start_board: &Board, pvs: bool) {
+    let mut negamax = Negamax::new();
     let mut board = *start_board;
-    let mut computers_turn = computer_starts & with_computer;
     loop {
         board.print_board();
         match board.get_winner() {
-            Some(0) => { println!("White Won!"); return; }
-            Some(1) => { println!("Black Won!"); return; }
+            Some(0) => { 
+                println!("White Won!"); 
+                return; 
+            }
+            Some(1) => { 
+                println!("Black Won!");
+                return; 
+            }
             _ => {}
         }
 
@@ -70,37 +108,41 @@ fn play(start_board: &Board, computer_starts: bool, depth: i32, with_computer: b
             }
             return;
         }
-
-        let tmove_option = { match computers_turn {
-            true => search(&board, 1, depth, 1, true),
-            false => get_human_move(&possible_moves)
-        }};
+        
+        let tmove_option = match is_next_player_human() {
+            true => { get_human_move(&possible_moves) }
+            false => { search_in_time(&mut negamax, &board, 4, 20, 2, 10.0, pvs).1 }
+        };
+        
         match tmove_option {
             Some(tmove) => { 
                 println!("Executing move {}", tmove.to_string());
                 board = board.make_move(&tmove); 
-                if with_computer {
-                    computers_turn = !computers_turn;
-                }
             },
             None => { return; }
         }
     }
 }
 
+
 fn main() {
     let mut mode = "solve".to_string();
-    let mut base_board = "benchmark".to_string();
+    let mut base_board = "start".to_string();
     let mut depth = 12;
+    let mut pvs = false;
 
     {
         let mut ap = ArgumentParser::new();
         ap.set_description("What do you want to do?");
-        ap.refer(&mut mode).add_option(&["-a", "--action"], Store, "Action: solve, play, playhc, playch [playch: play vs computer, computer starts]");
+        ap.refer(&mut mode).add_option(&["-a", "--action"], Store, "Action: solve, sanbox");
         ap.refer(&mut base_board).add_option(&["-b", "--board"], Store, "Staring postion. One of: start, benchmark, 18move");
         ap.refer(&mut depth).add_option(&["-d", "--depth"], Store, "Search depth for computer generation.");
+        ap.refer(&mut pvs).add_option(&["-p", "--pvs"], StoreTrue, "Search depth for computer generation.");
         ap.parse_args_or_exit();
     }
+
+    println!("Mode\tBoard    \tDepth\tPVS");
+    println!("{mode}\t{base_board}\t{depth}\t{pvs}");
 
     let board = Board { board: 
         match base_board.as_str() {
@@ -112,10 +154,8 @@ fn main() {
     };
 
     match mode.as_str() {
-        "solve" => { solve(&board, depth); },
-        "play" => { play(&board, false, 0, false); },
-        "playhc" => { play(&board, false, depth, true); },
-        "playch" => { play(&board, true, depth, true); },
-        _ => { println!("Defaulting to solve!"); solve(&board, depth)}
+        "solve" => { solve(&board, depth, pvs); },
+        "sandbox" => { sandbox(&board, pvs); },
+        _ => { println!("Defaulting to solve!"); solve(&board, depth, pvs)}
     }
 }   

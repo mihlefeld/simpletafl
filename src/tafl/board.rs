@@ -7,10 +7,6 @@ use unroll::unroll_for_loops;
 pub struct Board {pub board: u64}
 
 impl Board {
-    pub fn new(board: u64) -> Self{
-        return Board{board};
-    }
-
     pub fn get_winner(&self) -> Option<u8> {
         let mut king_pos: Option<(u8, u8)> = None;
         for i in 0..5 {
@@ -238,6 +234,10 @@ impl Board {
         }
         return score * (-2 * self.get_player() as i32 + 1);
     }
+
+    // pub fn eval_(&self) -> i32 {
+    //     return 1000 * (2 * self.get_player() as i32 - 1);
+    // }
 
     pub fn print_board(&self) {
         let player_string = format!("P{}", self.get_player() + 1);
